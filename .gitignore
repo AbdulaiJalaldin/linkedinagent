@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Environment
+.env
+.env.*
+*.env
+
+# Conda/venv
+.venv/
+venv/
+linkagentenv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Output folders
+outputs/
+generated_images/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Test cache
+.pytest_cache/
+
+# Misc
+*.log
+*.sqlite3
+
+# Ignore example env file
+!env_example.txt 
