@@ -47,14 +47,7 @@ def check_environment_variables():
         print(f"\n❌ Missing required environment variables:")
         for var in missing_vars:
             print(f"   - {var}")
-        print("\nPlease set these variables in your .env file.")
-        print("\nExample .env file:")
-        print(f"GROQ_API_KEY=your_groq_api_key_here")
-        print(f"LINKEDIN_ACCESS_TOKEN=your_linkedin_access_token_here")
-        print(f"LINKEDIN_CLIENT_ID=your_linkedin_client_id_here")
-        print(f"LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret_here")
-        print(f"YOUTUBE_API_KEY=your_youtube_api_key_here (optional)")
-        print(f"APIFY_API_TOKEN=your_apify_token_here (optional)")
+      
         return False  
     if optional_vars:
         print(f"\n⚠️  Optional variables not set: {', '.join(optional_vars)}")

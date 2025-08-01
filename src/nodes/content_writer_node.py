@@ -3,6 +3,7 @@ LinkedIn Content Writer node for LinkedIn Content Automation Agent
 Crafts engaging LinkedIn posts from selected content ideas
 """
 import os
+import re
 from typing import Dict, Any
 from langchain_groq import ChatGroq
 from langchain.schema import HumanMessage, SystemMessage
@@ -48,7 +49,7 @@ def content_writer_node(state: State) -> Dict[str, Any]:
         # Initialize Groq LLM
         llm = ChatGroq(
             groq_api_key=groq_api_key,
-            model_name="llama-3.3-70b-versatile",  # Using Llama 3.3 70B Versatile for high-quality writing
+            model_name="meta-llama/llama-4-scout-17b-16e-instruct",  # Using Llama 3.3 70B Versatile for high-quality writing
             temperature=0.8
         )
         
@@ -143,7 +144,7 @@ LINKEDIN POST GUIDELINES:
 4. Professional Tone: Maintain a professional yet conversational tone
 5. Structure: Use short paragraphs, bullet points, and white space for readability
 6. Call-to-Action: End with a clear, engaging call-to-action
-7. Hashtags: Include 3-5 relevant hashtags (but don't include them in the main content)
+7. Hashtags: Include 3-5 relevant hashtags at the end
 8. Length: Aim for 800-1200 characters (LinkedIn's sweet spot)
 
 POST STRUCTURE:
@@ -163,22 +164,21 @@ ENGAGEMENT TIPS:
 - Write in a conversational, natural tone
 - Focus on providing real value to the audience
 
-IMPORTANT: Do NOT include hashtags in the main content. Hashtags should be separate and only in the hashtags field."""
+IMPORTANT: Write the post exactly as you would publish it on LinkedIn. Do not use any special formatting, JSON, or technical syntax - just write a natural, engaging LinkedIn post."""
 
     user_prompt = f"""Please create an engaging LinkedIn post based on the following content idea and context:
 
 {writing_context}
 
-Generate your response in the following JSON format:
-{{
-    "title": "Catchy post title",
-    "content": "The full LinkedIn post content with proper formatting, line breaks, and structure",
-    "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3"],
-    "call_to_action": "Clear call-to-action statement",
-    "estimated_engagement": "High/Medium/Low based on content quality and relevance"
-}}
+Write the post exactly as you would publish it on LinkedIn. Include:
+- A catchy title/hook
+- The main content with proper formatting
+- A clear call-to-action
+- Relevant hashtags at the end
 
-Focus on creating a post that would resonate with {selected_idea.target_audience} and provide value related to {selected_idea.title}."""
+Focus on creating a post that would resonate with {selected_idea.target_audience} and provide value related to {selected_idea.title}.
+
+Write the post in natural, human-readable format - no JSON or special formatting."""
 
     # Create messages
     messages = [
@@ -191,54 +191,67 @@ Focus on creating a post that would resonate with {selected_idea.target_audience
     
     # Parse the response and create LinkedInPost object
     try:
-        # Extract JSON from response
-        import json
-        import re
+        # Extract content from the response
+        response_text = response.content.strip()
         
-        # Look for JSON in the response with better regex
-        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response.content, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(0)
-            
-            # Clean up the JSON string - remove invalid control characters
-            import string
-            printable = set(string.printable)
-            json_str = ''.join(filter(lambda x: x in printable, json_str))
-            
-            # Try to parse the cleaned JSON
-            try:
-                data = json.loads(json_str)
+        # Split the response into lines
+        lines = response_text.split('\n')
+        
+        # Extract title from the first line
+        title = lines[0].strip() if lines else selected_idea.title
+        
+        # Extract hashtags from the end of the post
+        hashtags = []
+        content_lines = []
+        call_to_action = "Connect with me for more insights!"
+        
+        # Process lines to separate content, hashtags, and call-to-action
+        for line in lines[1:]:  # Skip the title line
+            line = line.strip()
+            if not line:
+                continue
                 
-                post = LinkedInPost(
-                    title=data.get("title", ""),
-                    content=data.get("content", ""),
-                    hashtags=data.get("hashtags", []),
-                    call_to_action=data.get("call_to_action", ""),
-                    estimated_engagement=data.get("estimated_engagement", "Medium")
-                )
-                
-                return post
-            except json.JSONDecodeError as json_error:
-                print(f"JSON decode error: {json_error}")
-                # Try to fix common JSON issues
-                json_str = json_str.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
-                try:
-                    data = json.loads(json_str)
-                    post = LinkedInPost(
-                        title=data.get("title", ""),
-                        content=data.get("content", ""),
-                        hashtags=data.get("hashtags", []),
-                        call_to_action=data.get("call_to_action", ""),
-                        estimated_engagement=data.get("estimated_engagement", "Medium")
-                    )
-                    return post
-                except:
-                    # If all JSON parsing fails, use fallback
-                    return create_fallback_post(response.content, selected_idea)
-        else:
-            # Fallback: create post from the raw response
-            return create_fallback_post(response.content, selected_idea)
-            
+            # Check if line contains hashtags
+            if line.startswith('#') or '#' in line:
+                # Extract hashtags from this line
+                hashtag_matches = re.findall(r'#\w+', line)
+                hashtags.extend(hashtag_matches)
+                # Remove hashtags from the line for content
+                content_line = re.sub(r'#\w+', '', line).strip()
+                if content_line:
+                    content_lines.append(content_line)
+            else:
+                content_lines.append(line)
+        
+        # Join content lines
+        content = '\n'.join(content_lines).strip()
+        
+        # If no content was extracted, use the full response minus title
+        if not content:
+            content = '\n'.join(lines[1:]).strip()
+        
+        # If still no content, use the full response
+        if not content:
+            content = response_text
+        
+        # Generate hashtags if none were found
+        if not hashtags:
+            hashtags = [
+                f"#{re.sub(r'[^a-zA-Z0-9]', '', word).lower()}" 
+                for word in selected_idea.title.split()[:3]
+            ]
+        
+        # Create LinkedInPost object
+        post = LinkedInPost(
+            title=title,
+            content=content,
+            hashtags=hashtags,
+            call_to_action=call_to_action,
+            estimated_engagement="Medium"
+        )
+        
+        return post
+        
     except Exception as e:
         print(f"Error parsing LLM response: {e}")
         # Fallback: create post from the raw response
@@ -256,35 +269,32 @@ def create_fallback_post(response_text: str, selected_idea) -> LinkedInPost:
     Returns:
         LinkedInPost object
     """
-    # Clean up the response text
-    content = response_text.strip()
-    
+    # Remove any JSON-like blocks from the response text
+    cleaned_text = re.sub(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', '', response_text, flags=re.DOTALL)
+    content = cleaned_text.strip()
     # Extract title from first line or use idea title
     lines = content.split('\n')
-    title = lines[0].strip() if lines else selected_idea.title
-    
+    title = lines[0].strip() if lines and lines[0].strip() else selected_idea.title
     # Use the rest as content
-    post_content = '\n'.join(lines[1:]) if len(lines) > 1 else content
-    
+    post_content = '\n'.join(lines[1:]).strip() if len(lines) > 1 else ''
+    # If post_content is empty, use the full cleaned_text minus the title
+    if not post_content:
+        post_content = cleaned_text.strip()
+        if post_content.startswith(title):
+            post_content = post_content[len(title):].strip()
+    # If still empty, use a placeholder and print debug info
+    if not post_content:
+        print("[DEBUG] LLM response produced empty content. Raw response:")
+        print(response_text)
+        post_content = "[Content could not be extracted. Please review the AI response above.]"
     # Generate hashtags based on the idea
     hashtags = [
-        "#LinkedIn",
-        "#ContentCreation",
-        "#ProfessionalDevelopment"
+        f"#{re.sub(r'[^a-zA-Z0-9]', '', word).lower()}" for word in selected_idea.title.split()[:3]
     ]
-    
-    # Add topic-specific hashtags
-    if "business" in selected_idea.title.lower():
-        hashtags.append("#Business")
-    if "leadership" in selected_idea.title.lower():
-        hashtags.append("#Leadership")
-    if "innovation" in selected_idea.title.lower():
-        hashtags.append("#Innovation")
-    
     return LinkedInPost(
         title=title,
         content=post_content,
         hashtags=hashtags,
-        call_to_action="What are your thoughts on this? Share in the comments below!",
+        call_to_action="Connect with me for more insights!",
         estimated_engagement="Medium"
     ) 
