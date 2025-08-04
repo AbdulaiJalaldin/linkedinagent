@@ -1,6 +1,6 @@
 """
-LinkedIn Posting node for LinkedIn Content Automation Agent
-Posts generated content to LinkedIn using the LinkedIn API
+LinkedIn Posting Node for LinkedIn Content Automation Agent
+Posts promotional content to LinkedIn with media attachments
 """
 import os
 import requests
@@ -22,7 +22,9 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
     """
     linkedin_post: LinkedInPost = state.get("linkedin_post")
     generated_image: GeneratedImage = state.get("generated_image")
+    uploaded_images = state.get("uploaded_images", [])
     topic = state.get("topic", "")
+    user_approval = state.get("user_approval")
 
     if not linkedin_post:
         return {
@@ -31,6 +33,18 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
             "error_message": "No LinkedIn post available for posting",
             "messages": [
                 {"role": "system", "content": "No LinkedIn post found in state."}
+            ]
+        }
+
+    if not user_approval:
+        return {
+            "workflow_status": "failed",
+            "error_message": "Content not approved for posting",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Content not approved for posting"
+                }
             ]
         }
 
@@ -57,21 +71,69 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
         # Compose the post content
         post_text = compose_linkedin_post_text(linkedin_post)
         
+        # Determine which images to use
+        images_to_post = []
+        if generated_image:
+            images_to_post.append(generated_image)
+        if uploaded_images:
+            # Convert UploadedImage objects to a format compatible with the posting function
+            for uploaded_img in uploaded_images:
+                # Create a GeneratedImage-like object from UploadedImage
+                from src.state import GeneratedImage
+                converted_image = GeneratedImage(
+                    image_path=uploaded_img.file_path,
+                    image_description=uploaded_img.description or uploaded_img.file_name,
+                    prompt_used=f"Uploaded image: {uploaded_img.file_name}"
+                )
+                images_to_post.append(converted_image)
+        
         print(f"\n--- LinkedIn POST Preview ---")
         print(post_text)
-        if generated_image:
-            print(f"Image to be posted: {generated_image.image_path}")
+        if images_to_post:
+            print(f"Images to be posted: {len(images_to_post)} image(s)")
+            for i, img in enumerate(images_to_post, 1):
+                print(f"  {i}. {img.image_path}")
         print("--- END POST Preview ---\n")
 
         # Post to LinkedIn using REST API
-        # Print the payload for debugging
+        # For now, we'll use the first image if available
+        # In the future, we could modify the API to handle multiple images
+        first_image = images_to_post[0] if images_to_post else None
+        
         print("\n--- DEBUG: Payload to be sent to LinkedIn (see below if error occurs) ---")
         # We'll print the payload inside post_to_linkedin_rest_api
-        post_result = post_to_linkedin_rest_api(post_text, generated_image)
+        post_result = post_to_linkedin_rest_api(post_text, first_image)
         print("--- END DEBUG PAYLOAD ---\n")
 
-        # Always return the full post_result for debugging
-        return post_result
+        # Process the result
+        if post_result.get("id") and not post_result["id"].startswith("error"):
+            # Success
+            return {
+                "linkedin_post_id": post_result["id"],
+                "post_url": post_result["url"],
+                "posting_status": "completed",
+                "workflow_status": "posting_completed",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": f"Content posted successfully to LinkedIn. Post ID: {post_result['id']}"
+                    }
+                ]
+            }
+        else:
+            # Failed
+            error_msg = post_result.get("note", "Unknown error")
+            return {
+                "posting_status": "failed",
+                "workflow_status": "failed",
+                "error_message": error_msg,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": f"LinkedIn posting failed: {error_msg}"
+                    }
+                ]
+            }
         
     except Exception as e:
         error_msg = f"Error during LinkedIn posting: {str(e)}"

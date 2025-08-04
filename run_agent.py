@@ -7,6 +7,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from src.graph import run_linkedin_agent_interactive
+from src.product_promotion_graph import run_product_promotion_interactive
 
 # Load environment variables from .env file
 load_dotenv()
@@ -57,14 +58,47 @@ def check_environment_variables():
     return True
 
 
-def main():
+def display_main_menu():
     """
-    Main function to run the LinkedIn Content Automation Agent interactively.
+    Display the main menu and get user choice.
     """
+    print("\n" + "="*60)
+    print("🎯 LINKEDIN CONTENT AUTOMATION AGENT")
     print("="*60)
-    print("🚀 LINKEDIN CONTENT AUTOMATION AGENT")
+    print("Choose your content creation mode:")
+    print()
+    print("1. 📝 Write about a topic")
+    print("   - Scrape YouTube videos for inspiration")
+    print("   - Generate unique content ideas")
+    print("   - Create engaging LinkedIn posts")
+    print("   - Generate matching images")
+    print("   - Post directly to LinkedIn")
+    print()
+    print("2. 🚀 Promote a work/product")
+    print("   - Create promotional content for your work")
+    print("   - Upload promotional images")
+    print("   - Generate professional LinkedIn posts")
+    print("   - Save to PDF with images")
+    print("   - Auto-post to LinkedIn")
     print("="*60)
-    print("This tool will help you create engaging LinkedIn content by:")
+    
+    while True:
+        
+        choice = input("\nPlease choose an option (1.📝 Write about a topic or 2.🚀 Promote a work/product): ").strip()
+        if choice in ['1', '2']:
+            return int(choice)
+        else:
+            print("Please enter 1 or 2.")
+
+
+def run_topic_workflow():
+    """
+    Run the existing topic-based content creation workflow.
+    """
+    print("\n" + "="*60)
+    print("📝 TOPIC-BASED CONTENT CREATION")
+    print("="*60)
+    print("This workflow will help you create engaging LinkedIn content by:")
     print("1. Scraping relevant YouTube content")
     print("2. Generating 2 unique content ideas")
     print("3. Letting you choose your preferred idea")
@@ -72,10 +106,6 @@ def main():
     print("5. Generating a matching image")
     print("6. Optionally posting directly to LinkedIn")
     print("="*60)
-    
-    # Check environment variables
-    if not check_environment_variables():
-        return 1
     
     # Get topic from user
     print("\n📝 Enter your content topic:")
@@ -204,6 +234,28 @@ def main():
         print(f"Error type: {type(e).__name__}")
         print("Full traceback:")
         traceback.print_exc()
+        return 1
+
+
+def main():
+    """
+    Main function to run the LinkedIn Content Automation Agent interactively.
+    """
+    # Check environment variables
+    if not check_environment_variables():
+        return 1
+    
+    # Display main menu and get user choice
+    choice = display_main_menu()
+    
+    if choice == 1:
+        # Run topic-based workflow
+        return run_topic_workflow()
+    elif choice == 2:
+        # Run product promotion workflow
+        return run_product_promotion_interactive()
+    else:
+        print("Invalid choice. Exiting.")
         return 1
 
 

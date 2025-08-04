@@ -226,7 +226,8 @@ def run_linkedin_agent_interactive(topic: str):
                             "linkedin_post": linkedin_post,
                             "generated_image": generated_image,
                             "topic": topic,
-                            "workflow_status": "ready_to_post"
+                            "workflow_status": "ready_to_post",
+                            "user_approval": True  # User already approved by choosing 'post'
                         }
                         post_result = linkedin_posting_node(post_state)
                         result.update(post_result)

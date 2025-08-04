@@ -57,6 +57,27 @@ class GoogleDoc(BaseModel):
     title: str
 
 
+class ProductPromotionData(BaseModel):
+    """Represents product promotion information"""
+    name: str
+    description: str
+    features: List[str]
+    benefits: List[str]
+    target_audience: str
+    call_to_action: str
+    website: Optional[str] = None
+    contact_info: Optional[str] = None
+    additional_info: Optional[str] = None
+
+
+class UploadedImage(BaseModel):
+    """Represents an uploaded image for promotion"""
+    file_path: str
+    file_name: str
+    file_size: int
+    description: Optional[str] = None
+
+
 class State(TypedDict):
     """Main state for the LinkedIn Content Automation Agent"""
     # Input
@@ -98,6 +119,11 @@ class State(TypedDict):
     linkedin_post_id: Optional[str]
     posting_status: str  # "pending", "in_progress", "completed", "failed"
     
+    # Product promotion phase
+    product_data: Optional[ProductPromotionData]
+    uploaded_images: List[UploadedImage]
+    promotion_status: str  # "pending", "collecting_info", "uploading_images", "generating_content", "creating_pdf", "awaiting_approval", "completed", "failed"
+    
     # Overall workflow status
-    workflow_status: str  # "initialized", "scraping", "generating", "researching", "writing", "imaging", "docs", "approval", "posting", "completed", "failed"
+    workflow_status: str  # "initialized", "scraping", "generating", "researching", "writing", "imaging", "docs", "approval", "posting", "promotion", "completed", "failed"
     error_message: Optional[str] 
