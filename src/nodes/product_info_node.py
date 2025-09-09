@@ -16,6 +16,28 @@ def product_info_node(state: State) -> Dict[str, Any]:
     Returns:
         Updated state with collected product information
     """
+    # Check if product data already exists (from Slack session)
+    existing_product_data = state.get("product_data")
+    if existing_product_data:
+        print("\n" + "="*60)
+        print("🚀 PRODUCT/WORK PROMOTION SETUP")
+        print("="*60)
+        print("Using pre-collected product data...")
+        print("="*60)
+        
+        return {
+            "product_data": existing_product_data,
+            "promotion_status": "collecting_info",
+            "workflow_status": "promotion",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": f"Using pre-collected product data for: {existing_product_data.name}"
+                }
+            ]
+        }
+    
+    # Normal interactive data collection
     print("\n" + "="*60)
     print("🚀 PRODUCT/WORK PROMOTION SETUP")
     print("="*60)

@@ -273,37 +273,4 @@ if __name__ == "__main__":
     topic = "artificial intelligence in business"
     result = run_linkedin_agent_interactive(topic)
     
-    # print(f"\nWorkflow completed with status: {result['workflow_status']}")
-    # print(f"Scraped {len(result['scraped_content'])} pieces of content")
     
-    # Display final results
-    # if result.get("linkedin_post"):
-    #     print("\n" + "="*50)
-    #     print("GENERATED LINKEDIN POST")
-    #     print("="*50)
-    #     post = result["linkedin_post"]
-    #     print(f"Title: {post.title}")
-    #     print(f"Content: {post.content}")
-    #     print(f"Hashtags: {' '.join(post.hashtags)}")
-    #     print(f"Call to Action: {post.call_to_action}")
-    #     print(f"Estimated Engagement: {post.estimated_engagement}")
-        
-        # Display generated image information
-    # if result.get("generated_image"):
-    #     print("\n" + "="*50)
-    #     print("GENERATED IMAGE")
-    #     print("="*50)
-    #     image = result["generated_image"]
-    #     print(f"Image Path: {image.image_path}")
-    #     print(f"Description: {image.image_description}")
-    #     print(f"Prompt Used: {image.prompt_used[:100]}...")
-    
-    # Display scraped content summary
-    # for i, content in enumerate(result['scraped_content']):
-    #     print(f"\nContent {i+1}:")
-    #     print(f"Source: {content.source_type}")
-    #     print(f"Title: {content.title}")
-    #     print(f"URL: {content.source_url}")
-    #     print(f"Content length: {len(content.content)} characters")
-    #     if content.transcript:
-    #         print(f"Transcript length: {len(content.transcript)} characters") 

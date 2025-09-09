@@ -14,11 +14,33 @@ def image_upload_node(state: State) -> Dict[str, Any]:
     Image Upload node that handles promotional image uploads.
     
     Args:
-        state: Current workflow state with product data
+        state: Current workflow state
         
     Returns:
         Updated state with uploaded images
     """
+    # Check if images already exist (from Slack session)
+    existing_images = state.get("uploaded_images", [])
+    if existing_images:
+        print("\n" + "="*60)
+        print("🖼️  IMAGE UPLOAD")
+        print("="*60)
+        print(f"Using {len(existing_images)} pre-uploaded images from Slack...")
+        print("="*60)
+        
+        return {
+            "uploaded_images": existing_images,
+            "promotion_status": "uploading_images",
+            "workflow_status": "promotion",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": f"Using {len(existing_images)} pre-uploaded images"
+                }
+            ]
+        }
+    
+    # Normal interactive image upload
     print("\n" + "="*60)
     print("🖼️  IMAGE UPLOAD")
     print("="*60)
@@ -34,43 +56,25 @@ def image_upload_node(state: State) -> Dict[str, Any]:
         
         if not image_path:
             break
-            
-        # Check if file exists
-        if not os.path.exists(image_path):
-            print(f"❌ File not found: {image_path}")
-            continue
-            
-        # Check file extension
-        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif']
-        file_ext = Path(image_path).suffix.lower()
         
-        if file_ext not in allowed_extensions:
-            print(f"❌ Unsupported file format: {file_ext}")
-            print(f"Supported formats: {', '.join(allowed_extensions)}")
-            continue
-            
-        # Validate image file
         try:
-            with Image.open(image_path) as img:
-                img.verify()
-            
-            # Get file size
-            file_size = os.path.getsize(image_path)
-            
-            # Create UploadedImage object
-            uploaded_image = UploadedImage(
-                file_path=image_path,
-                file_name=Path(image_path).name,
-                file_size=file_size,
-                description=None
-            )
-            
-            uploaded_images.append(uploaded_image)
-            print(f"✅ Image added: {image_path}")
-            
+            # Validate and add image
+            if os.path.exists(image_path):
+                file_size = os.path.getsize(image_path)
+                file_name = os.path.basename(image_path)
+                
+                uploaded_image = UploadedImage(
+                    file_path=image_path,
+                    file_name=file_name,
+                    file_size=file_size,
+                    description=None
+                )
+                uploaded_images.append(uploaded_image)
+                print(f"✅ Added: {file_name}")
+            else:
+                print(f"❌ File not found: {image_path}")
         except Exception as e:
-            print(f"❌ Invalid image file: {e}")
-            continue
+            print(f"❌ Error adding image: {str(e)}")
     
     return {
         "uploaded_images": uploaded_images,

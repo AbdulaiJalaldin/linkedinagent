@@ -16,5 +16,6 @@ diffusers>=0.24.0
 transformers>=4.35.2
 torch>=2.1.1
 requests>=2.31.0 
+slack-sdk>=3.26.0
 fpdf
 reportlab>=4.0.0 

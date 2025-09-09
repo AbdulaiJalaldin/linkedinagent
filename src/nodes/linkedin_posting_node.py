@@ -26,7 +26,10 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
     topic = state.get("topic", "")
     user_approval = state.get("user_approval")
 
+    print(f"[DEBUG] LinkedIn posting node - user_approval: {user_approval}")
+
     if not linkedin_post:
+        print("[DEBUG] No LinkedIn post found in state")
         return {
             "workflow_status": "failed",
             "posting_status": "failed",
@@ -37,6 +40,7 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
         }
 
     if not user_approval:
+        print("[DEBUG] Content not approved for posting")
         return {
             "workflow_status": "failed",
             "error_message": "Content not approved for posting",
@@ -53,7 +57,13 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
     client_id = os.getenv("LINKEDIN_CLIENT_ID")
     client_secret = os.getenv("LINKEDIN_CLIENT_SECRET")
     
+    print(f"[DEBUG] LinkedIn credentials check:")
+    print(f"[DEBUG] - Access token: {'Set' if access_token else 'Not set'}")
+    print(f"[DEBUG] - Client ID: {'Set' if client_id else 'Not set'}")
+    print(f"[DEBUG] - Client Secret: {'Set' if client_secret else 'Not set'}")
+    
     if not all([access_token, client_id, client_secret]):
+        print("[DEBUG] Missing LinkedIn credentials")
         return {
             "workflow_status": "failed",
             "posting_status": "failed",
@@ -70,6 +80,7 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
         
         # Compose the post content
         post_text = compose_linkedin_post_text(linkedin_post)
+        print(f"[DEBUG] Post text composed: {post_text[:100]}...")
         
         # Determine which images to use
         images_to_post = []
@@ -87,6 +98,8 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
                 )
                 images_to_post.append(converted_image)
         
+        print(f"[DEBUG] Images to post: {len(images_to_post)}")
+        
         print(f"\n--- LinkedIn POST Preview ---")
         print(post_text)
         if images_to_post:
@@ -103,11 +116,13 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
         print("\n--- DEBUG: Payload to be sent to LinkedIn (see below if error occurs) ---")
         # We'll print the payload inside post_to_linkedin_rest_api
         post_result = post_to_linkedin_rest_api(post_text, first_image)
+        print(f"[DEBUG] Post result: {post_result}")
         print("--- END DEBUG PAYLOAD ---\n")
 
         # Process the result
         if post_result.get("id") and not post_result["id"].startswith("error"):
             # Success
+            print(f"[DEBUG] LinkedIn posting successful - Post ID: {post_result['id']}")
             return {
                 "linkedin_post_id": post_result["id"],
                 "post_url": post_result["url"],
@@ -123,6 +138,7 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
         else:
             # Failed
             error_msg = post_result.get("note", "Unknown error")
+            print(f"[DEBUG] LinkedIn posting failed: {error_msg}")
             return {
                 "posting_status": "failed",
                 "workflow_status": "failed",
@@ -137,7 +153,7 @@ def linkedin_posting_node(state: State) -> Dict[str, Any]:
         
     except Exception as e:
         error_msg = f"Error during LinkedIn posting: {str(e)}"
-        print(f"LinkedIn posting error: {error_msg}")
+        print(f"[DEBUG] LinkedIn posting exception: {error_msg}")
         return {
             "workflow_status": "failed",
             "posting_status": "failed",
@@ -268,6 +284,7 @@ def post_to_linkedin_rest_api(post_text: str, generated_image: GeneratedImage = 
     """
     access_token = os.getenv("LINKEDIN_ACCESS_TOKEN")
     if not access_token:
+        print("[DEBUG] No LinkedIn access token found")
         return {
             "id": "no_token",
             "url": None,
@@ -275,20 +292,27 @@ def post_to_linkedin_rest_api(post_text: str, generated_image: GeneratedImage = 
             "note": "No LinkedIn access token available"
         }
     try:
+        print("[DEBUG] Getting user URN from LinkedIn...")
         # Get user URN from /userinfo endpoint
         user_urn = get_user_urn_from_userinfo(access_token)
+        print(f"[DEBUG] User URN result: {user_urn}")
+        
         if user_urn.startswith("userinfo_error"):
+            print("[DEBUG] Failed to get user URN")
             return {
                 "id": "userinfo_error",
                 "url": None,
                 "response": {"status": "error", "message": "Failed to get user URN"},
                 "note": "Could not retrieve user URN from /userinfo endpoint"
             }
+        
         # If we have an image, upload it and only proceed if successful
         image_urn = None
         if generated_image and os.path.exists(generated_image.image_path):
-            print(f"Uploading image: {generated_image.image_path}")
+            print(f"[DEBUG] Uploading image: {generated_image.image_path}")
             image_urn = upload_image_to_linkedin(access_token, generated_image.image_path, user_urn)
+            print(f"[DEBUG] Image upload result: {image_urn}")
+            
             if not image_urn:
                 print("❌ Image upload failed, aborting post.")
                 return {
@@ -297,6 +321,7 @@ def post_to_linkedin_rest_api(post_text: str, generated_image: GeneratedImage = 
                     "response": {"status": "error", "message": "Image upload failed, post not created."},
                     "note": "Image upload failed, post not created."
                 }
+        
         # Compose the post data for /rest/posts endpoint
         api_url = "https://api.linkedin.com/rest/posts"
         headers = {
@@ -319,14 +344,21 @@ def post_to_linkedin_rest_api(post_text: str, generated_image: GeneratedImage = 
             post_data["content"] = {
                 "media": {"id": image_urn}
             }
+        
         print("\n--- DEBUG: Payload to be sent to LinkedIn ---")
         print(json.dumps(post_data, indent=4))
         print("--- END DEBUG PAYLOAD ---\n")
+        
+        print(f"[DEBUG] Making API call to: {api_url}")
         response = requests.post(api_url, headers=headers, json=post_data)
+        print(f"[DEBUG] API response status: {response.status_code}")
+        print(f"[DEBUG] API response text: {response.text}")
+        
         if response.status_code in [200, 201]:
             response_data = response.json()
             post_id = response_data.get("id")
             post_url = f"https://www.linkedin.com/feed/update/{post_id}/" if post_id else None
+            print(f"[DEBUG] Success! Post ID: {post_id}, URL: {post_url}")
             return {
                 "id": post_id,
                 "url": post_url,
@@ -339,6 +371,7 @@ def post_to_linkedin_rest_api(post_text: str, generated_image: GeneratedImage = 
                 error_json = response.json()
             except Exception:
                 error_json = None
+            print(f"[DEBUG] API error - Status: {response.status_code}, Response: {response.text}")
             return {
                 "id": "api_error",
                 "url": None,
@@ -351,7 +384,7 @@ def post_to_linkedin_rest_api(post_text: str, generated_image: GeneratedImage = 
                 "note": f"LinkedIn API returned status {response.status_code}"
             }
     except Exception as e:
-        print(f"Error in LinkedIn REST API posting: {str(e)}")
+        print(f"[DEBUG] Exception in LinkedIn API call: {str(e)}")
         return {
             "id": "exception",
             "url": None,

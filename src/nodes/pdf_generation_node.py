@@ -25,6 +25,10 @@ def pdf_generation_node(state: State) -> Dict[str, Any]:
     # Get data from state
     linkedin_post = state.get("linkedin_post")
     product_data = state.get("product_data")
+    if not product_data:
+        print("[ERROR] product_data is missing in PDF generation node.")
+    elif not hasattr(product_data, 'name'):
+        print(f"[ERROR] product_data is not the expected type: {type(product_data)}. Value: {product_data}")
     uploaded_images = state.get("uploaded_images", [])
     
     if not linkedin_post:
@@ -143,7 +147,7 @@ def pdf_generation_node(state: State) -> Dict[str, Any]:
         
         return {
             "pdf_path": str(pdf_path),
-            "promotion_status": "creating_pdf",
+            "promotion_status": "pdf_generated",
             "workflow_status": "promotion",
             "messages": [
                 {
