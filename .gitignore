@@ -21,6 +21,9 @@ linkagentenv/
 # Output folders
 outputs/
 generated_images/
+output/
+temp_uploads/
+*.txt
 
 # System files
 .DS_Store
