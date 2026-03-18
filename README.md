@@ -10,7 +10,7 @@ A sophisticated AI agent that automates the entire LinkedIn content creation pro
 - **AI Content Writing**: Creates engaging, value-driven LinkedIn posts from your selected idea
 - **Research Integration**: Gathers supporting facts and statistics for content ideas
 - **Image Generation**: Generates relevant images for posts using open-source models
-- **Google Docs Integration**: Saves content to Google Docs for review
+- **pdf**: Saves content in a pdf
 - **Human Approval Workflow**: Requires user approval before posting
 - **LinkedIn Auto-Posting**: Automatically posts approved content to LinkedIn
 
@@ -25,7 +25,7 @@ The agent uses LangGraph to create a sophisticated workflow with multiple specia
 5. **Content Writer Node**: Crafts engaging LinkedIn posts from selected idea
 6. **Research Node**: Gathers supporting facts and statistics
 7. **Image Generation Node**: Creates relevant images
-8. **Google Docs Node**: Saves content for review
+8. **pdf node**: saves content in a pdf
 9. **Approval Node**: Handles user approval workflow
 10. **LinkedIn Posting Node**: Posts approved content
 
